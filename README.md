@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.4-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.2.5-blue" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
   <img src="https://img.shields.io/badge/claude-opus%204.6-blueviolet" alt="Claude Opus 4.6" />
   <img src="https://img.shields.io/badge/agents-5-orange" alt="5 Agents" />
@@ -188,7 +188,7 @@ Agents are constrained by a `PreToolUse` hook that gates every tool call. The ho
 | B (Reviewer) | Nothing | No | No |
 | C (Coder) | Inside `~/Builds/` (except `plan.md`) | Yes (dangerous cmds need approval) | No |
 | D (Tester) | Nothing | Yes (dangerous cmds need approval) | No |
-| S (Supervisor) | Unrestricted | Yes | No |
+| S (Supervisor) | `~/Builds/` only (no `.claude/`) | Yes (pattern-restricted) | No |
 
 Additional protections:
 - No agent can write outside `~/Builds/`

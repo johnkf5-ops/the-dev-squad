@@ -11,9 +11,9 @@
 # OS-level sandboxing (containers, chroot, etc).
 #
 # AGENT S (Supervisor): Read unrestricted. Write/Edit jailed to ~/Builds/. Bash allowed.
-# AGENT A (Planner):    Can only write plan.md in current project. No Bash. No Agent tool.
+# AGENT A (Planner):    Can only write plan.md inside ~/Builds/. No Bash. No Agent tool.
 # AGENT B (Reviewer):   Cannot write anything. No Bash. No Agent tool.
-# AGENT C (Coder):      Can write in current project except plan.md and .claude/. No Agent tool.
+# AGENT C (Coder):      Can write inside ~/Builds/ except plan.md and .claude/. No Agent tool.
 # AGENT D (Tester):     Cannot write anything. No Agent tool.
 #
 # ALL: Write/Edit outside ~/Builds/ blocked. .claude/ paths blocked for all agents.
@@ -92,7 +92,7 @@ resolve_filepath() {
     return
   fi
   fp="$dir_resolved/$(basename "$fp")"
-  # Resolve file-level symlinks AND hardlinks by checking real path
+  # Resolve file-level symlinks (NOTE: does not detect hardlinks — known limitation)
   if [ -e "$fp" ]; then
     local resolved
     resolved=$(readlink -f "$fp" 2>/dev/null)
@@ -200,8 +200,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
 
   COMMAND=$(echo "$TOOL_INPUT" | jq -r '.command // ""')
 
-  # Block any command that references .claude in any form (glob, quotes, variables)
-  # Use case pattern matching which handles glob patterns
+  # Block any command referencing .claude, hooks, or settings
   case "$COMMAND" in
     *".claude"*|*"approval-gate"*|*"settings.json"*|*"hooks/"*)
       echo "BLOCKED: Cannot modify hook or settings files via Bash" >&2
@@ -209,28 +208,33 @@ if [ "$TOOL_NAME" = "Bash" ]; then
       ;;
   esac
 
-  # Block commands that could spawn claude or change agent identity
-  # This catches direct invocations — indirect exec (python, eval, base64)
-  # is a known limitation documented in SECURITY.md
+  # Block mv/cp/rm with any glob that could target .claude (e.g., .c*, .cl*)
+  # Block these commands entirely when they contain glob wildcards near dot-files
   case "$COMMAND" in
-    *"PIPELINE_AGENT"*|*"claude -p"*|*"claude --"*|*"claude -"*)
-      echo "BLOCKED: Cannot spawn Claude sessions or modify agent identity via Bash" >&2
+    *"mv "*"."*"*"*|*"cp "*"."*"*"*|*"rm "*"."*"*"*)
+      echo "BLOCKED: Cannot mv/cp/rm with glob patterns on dot-files" >&2
+      exit 2
+      ;;
+    *"mv ."*|*"cp ."*|*"rm ."*|*"rm -"*" ."*)
+      echo "BLOCKED: Cannot mv/cp/rm dot-files or dot-directories" >&2
       exit 2
       ;;
   esac
 
-  # Block ln (hardlink/symlink creation) to prevent link-based bypasses
+  # Block ln entirely — prevents hardlink and symlink bypasses
   case "$COMMAND" in
-    *" ln "*|"ln "*|*" ln -"*|*";ln "*|*"&&ln "*|*"|ln "*)
+    *"ln "*|"ln "*|*";ln "*|*"&&ln "*|*"|ln "*|*'$(ln'*|*'`ln'*)
       echo "BLOCKED: Cannot create links via Bash" >&2
       exit 2
       ;;
   esac
 
-  # Block mv/cp targeting .claude or hook files (catches glob evasion)
+  # Block direct claude invocations and PIPELINE_AGENT manipulation
+  # NOTE: Indirect execution (python3 -c, eval, base64) is a KNOWN LIMITATION
+  # that cannot be solved with bash pattern matching. See SECURITY.md.
   case "$COMMAND" in
-    *"mv "*".clau"*|*"cp "*".clau"*|*"rm "*".clau"*)
-      echo "BLOCKED: Cannot move/copy/remove hook files via Bash" >&2
+    *"PIPELINE_AGENT"*|*"claude -"*|*"claude --"*)
+      echo "BLOCKED: Cannot spawn Claude sessions or modify agent identity via Bash" >&2
       exit 2
       ;;
   esac
