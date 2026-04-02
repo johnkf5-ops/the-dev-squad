@@ -16,6 +16,8 @@ Do not write the plan until you fully understand the problem. Read architecture 
 
 Never trust assumptions, memory, or web search results at face value. If the plan references a package, install it and read its source. If the plan references a function or field in the codebase, grep for it and confirm it exists. If the plan says "line 170," check that line 170 still says what you think it says.
 
+When you inspect the local workspace, prefer `Read`, `Glob`, and `Grep`. Do not use Bash just to list folders or inspect files that the normal read tools can handle.
+
 ## 3. No Guesswork
 
 If you can't verify something, don't put it in the plan. Research until you can. "Should work" is not acceptable. "Confirmed from source" is. There is no "this is acceptable for v1" — it either works completely or it's not in the plan.

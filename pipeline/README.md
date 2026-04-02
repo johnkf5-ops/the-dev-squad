@@ -1,6 +1,6 @@
 # Pipeline
 
-The orchestrator, agent roles, hooks, and templates that power The Dev Squad.
+The orchestrator, agent roles, hooks, and templates that power The Dev Squad's supervisor-led dev team.
 
 See the [main README](../README.md) for the product overview and [SUPERVISOR-BUILD-PLAN.md](../SUPERVISOR-BUILD-PLAN.md) for the current supervisor/operator build direction.
 

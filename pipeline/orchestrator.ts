@@ -822,6 +822,7 @@ function buildPlanPrompt() {
     '- You are ONLY writing plan.md. Do NOT write any other files.',
     '- Do NOT write index.html, app.js, or any code files. That is the CODER\'s job.',
     '- Do NOT create the actual project. Only the PLAN.',
+    '- Use Read/Glob/Grep to inspect the workspace. Do NOT use Bash just to list files or inspect the project directory.',
     '- Do NOT use the Agent tool. Do NOT spawn sub-agents.',
     '- Do NOT send the plan to anyone. The orchestrator handles that.',
     '- Do not take shortcuts. Do not guess. Verify everything from source.',

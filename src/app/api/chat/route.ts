@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { EMPTY_RUNTIME } from '@/lib/pipeline-runtime';
 import { readPendingApproval } from '@/lib/pipeline-approval';
 import { buildSupervisorSnapshot } from '@/lib/pipeline-supervisor';
+import { buildSupervisorConceptReply, looksLikeStatusQuestion } from '@/lib/supervisor-concept';
 import {
   appendPipelineEvent,
   resumePipelineRun,
@@ -414,6 +415,37 @@ function handlePipeline(
         });
         return NextResponse.json({ success: true, controlAction: 'stop-run', projectDir: result.projectDir });
       }
+    }
+
+    const isConceptPhase =
+      projectDir === STAGING_DIR &&
+      (!state.currentPhase || state.currentPhase === 'concept') &&
+      !state.buildComplete;
+
+    if (isConceptPhase) {
+      const shouldUpdateConcept = !looksLikeStatusQuestion(message) || !state.concept;
+      if (shouldUpdateConcept) {
+        state.concept = message.trim();
+      }
+
+      appendUserEvent(state, agent, message);
+      const reply = buildSupervisorConceptReply(String(state.concept || ''), shouldUpdateConcept);
+      const events = (state.events as Array<Record<string, unknown>>) || [];
+      events.push({
+        time: new Date().toISOString(),
+        agent: 'S',
+        phase: state.currentPhase || 'concept',
+        type: 'text',
+        text: reply,
+      });
+      state.events = events;
+      writeState(eventsFile, state);
+
+      return NextResponse.json({
+        success: true,
+        conceptCaptured: shouldUpdateConcept,
+        concept: state.concept,
+      });
     }
   }
 

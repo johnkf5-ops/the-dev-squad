@@ -41,11 +41,25 @@ export async function POST(req: NextRequest) {
         try {
           const eventsFile = join(dir, 'pipeline-events.json');
           const state = JSON.parse(readFileSync(eventsFile, 'utf8'));
-          if (state.currentPhase && state.currentPhase !== 'concept') {
+          const shouldReset =
+            state.currentPhase !== 'concept' ||
+            state.pipelineStatus === 'running' ||
+            state.pipelineStatus === 'paused' ||
+            state.pipelineStatus === 'failed' ||
+            state.pipelineStatus === 'complete' ||
+            !!state.buildComplete;
+
+          if (shouldReset) {
             state.currentPhase = 'concept';
             state.activeAgent = '';
             state.buildComplete = false;
+            state.pipelineStatus = 'idle';
+            state.stopAfterPhase = 'none';
+            state.resumeAction = 'none';
             state.agentStatus = { A: 'idle', B: 'idle', C: 'idle', D: 'idle', S: 'idle' };
+            if (state.runtime && typeof state.runtime === 'object') {
+              state.runtime.activeTurn = null;
+            }
             writeFileSync(eventsFile, JSON.stringify(state, null, 2));
           }
         } catch {}

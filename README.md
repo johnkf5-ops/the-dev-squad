@@ -8,7 +8,6 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
   <img src="https://img.shields.io/badge/claude-opus%204.6-blueviolet" alt="Claude Opus 4.6" />
   <img src="https://img.shields.io/badge/agents-5-orange" alt="5 Agents" />
-  <img src="https://img.shields.io/badge/API%20cost-$0-brightgreen" alt="Zero API Cost" />
   <img src="https://img.shields.io/badge/node-22%2B-339933" alt="Node 22+" />
 </p>
 
@@ -18,44 +17,46 @@
 
 ---
 
-> One supervisor. Four specialists. One controlled build flow. They communicate through structured signals, review each other's work, and loop until every step is right. The result is bulletproof plans that produce bulletproof builds.
+> Give Claude a dev team in one workspace: one supervisor, four specialists, and a shared build doctrine that produces bulletproof plans before coding starts.
 >
-> No API keys. No per-token costs. All 5 sessions run on your Claude subscription.
+> The point is not just that it runs on your Claude subscription. The point is that you stop copy-pasting between sessions, keep context in one place, and let a supervisor manage the team for you while you can still jump in and talk to any specialist directly.
 
 ---
 
 ## Why This Exists
 
-I was spending hours writing build plans. Not specs — full plans with complete, copy-pasteable code for every file. I found that if the plan was bulletproof, the build was bulletproof. No guessing, no improvising, no "I'll figure it out during implementation." The coder just follows the plan.
+I was spending hours doing the same ritual over and over: open one Claude session to shape the idea, another to write the plan, another to review it, another to code it, another to test it. Every handoff meant more copy-paste, more context loss, and more chances for the build to drift.
 
-But writing those plans was brutal. I'd go back and forth with Claude — "is this thorough enough?", "did you verify this package exists?", "what about error handling?" — until the session would lose context. I'd open a new session, paste the plan, keep going. Then I'd open another session for the reviewer, another for the coder, another for testing. I was manually orchestrating 4-5 Claude sessions, copying messages between them.
+The Dev Squad is the answer to that problem. Instead of juggling separate chats by hand, you give Claude its own dev team in one place. A supervisor (`S`) can manage the flow for you. The planner writes the build plan. The reviewer challenges it. The coder implements it. The tester checks it. You can still intervene directly with any of them whenever you want, but you no longer have to manually orchestrate the whole thing.
 
-The Dev Squad is what happens when you automate that. The planner writes the plan with complete code — not descriptions, not pseudocode, actual code. The reviewer tears it apart and loops with the planner until there are zero gaps. Only then does the coder touch it. The coder doesn't think — it follows the plan exactly. The tester doesn't guess — it checks every item against the plan.
+The real win is not “multi-agent” by itself. The real win is that the build plan becomes the contract for the whole team. A writes a plan with complete, copy-pasteable code. B tears it apart until there are no gaps. Only then does C touch the implementation. D checks the result against the approved plan instead of guessing what “done” means.
 
-The key insight: **the plan IS the code**. Agent A doesn't write a spec sheet. A writes a plan that contains every line of code the coder will need. The reviewer's job is to make sure that plan is so complete that the coder never has to ask a single question. That's what makes the builds bulletproof — by the time C starts coding, every decision has already been made and verified.
+The key insight is still the same: **the plan is the code contract**. Agent A does not write a vague spec sheet. A writes a plan that is complete enough for the coder to build without asking a single question. That is what makes the builds reliable — by the time coding starts, the biggest decisions should already be made and verified.
 
-I built a template and checklist that A follows — research, verify from source, write complete code, do one self-review pass, then hand off a review-ready plan. A can't skip steps. B can't approve until every question is answered. The pipeline enforces quality at every stage so I don't have to.
+That is why the team shares a doctrine: `build-plan-template.md`, `checklist.md`, and the locked `plan.md`. The supervisor can run the team for you, but the quality bar stays the same. Research first. Verify from source. Write complete code in the plan. Do one self-review. Let B challenge it. Only then move to C and D.
 
-My rule: the plan must be 100% bulletproof with zero errors and evidence to verify every decision before I move forward with a build. No "this should work." No "I think this package exists." Every claim is verified from source. Every code block is complete and tested in the planner's head before the coder ever sees it.
+This project exists because I wanted that whole process in one interface, with one shared context, and a supervisor who can run it for me when I do not want to babysit five different sessions.
 
-The result: builds come out with no errors. I used to spend hours after a build going back and fixing things — missing dependencies, wrong API signatures, broken imports. Now, 99% of the time, the build produces exactly what I asked for. On the rare occasion something needs troubleshooting, every agent still has complete context because we didn't burn through the session going in circles. The planner remembers the concept. The coder remembers what it built. The tester remembers what it tested. Nobody lost context because each agent only did its one job.
-
-This saves me hours every day.
+It also happens to run on a Claude subscription instead of the API, which is nice. But that is a secondary benefit. The main thing is: Claude has a dev team now.
 
 ---
 
 ## What This Is
 
-The Dev Squad is moving toward a simple product idea:
+The Dev Squad is a supervisor-led Claude dev team:
 
-- you give Claude a dev team
-- `S` is the supervisor and recovery partner
+- `S` is the human-facing supervisor
 - `A`, `B`, `C`, and `D` are the specialists
 - the whole team follows the same doctrine: `build-plan-template.md`, `checklist.md`, and the approved `plan.md`
+- you can talk to `S` by default or jump directly into any specialist chat whenever you want
 
-Today, pipeline mode still starts with **A** in Phase 0. The long-term direction is for **S** to become the primary operator while the specialists do the actual planning, review, coding, and testing work. The current implementation now has the first real supervisor controls for that direction: live turn tracking, stalled-turn visibility, saved session ids for recovery, `plan-only`, `stop after review`, and resume/continue actions in the dashboard.
+Today, the current product shape is already visible:
 
-The implementation plan for that shift lives in [SUPERVISOR-BUILD-PLAN.md](SUPERVISOR-BUILD-PLAN.md).
+- S can capture the concept, start the team, pause after review, continue an approved plan, resume stalled planning/review turns, and stop the run
+- the specialists keep their own context in the same workspace instead of forcing you to copy/paste between sessions
+- the dashboard and office UI let you watch everything happen in one place
+
+The longer-term implementation plan for pushing even more authority into `S` lives in [SUPERVISOR-BUILD-PLAN.md](SUPERVISOR-BUILD-PLAN.md).
 
 ---
 
@@ -69,21 +70,21 @@ The implementation plan for that shift lives in [SUPERVISOR-BUILD-PLAN.md](SUPER
 | **D** | Tester | Reviews C's code against the plan, runs it, catches bugs. Loops with C until everything passes. |
 | **S** | Supervisor | Your supervisor and recovery partner. Today S helps inspect runs, explain what the team is doing, and diagnose stalls or loops. |
 
-Each agent is a separate Claude Code session running Claude Opus 4.6. They communicate through structured JSON signals routed by an orchestrator. Restrictions are enforced by a `PreToolUse` hook, but the real product idea is the team structure plus the shared doctrine: the build plan template, the checklist, and the locked plan. See [SECURITY.md](SECURITY.md) for the threat model and known limitations.
+Each agent is a separate Claude Code session running Claude Opus 4.6. They communicate through structured JSON signals routed by an orchestrator. Restrictions are enforced by a `PreToolUse` hook, but the real product idea is not “a hook-driven pipeline.” It is the team structure plus the shared doctrine: the build plan template, the checklist, and the locked plan. See [SECURITY.md](SECURITY.md) for the threat model and known limitations.
 
 ## How It Works
 
 ```
 1. Open the viewer
-2. Chat with Agent A — today, Phase 0 still starts here
-3. Hit START
-4. Watch 5 agents build it autonomously by default
+2. Tell S what you want to build
+3. Ask S to start planning or start the build
+4. Let S manage the team, or jump into any specialist panel yourself
 5. Your project is in ~/Builds/
 ```
 
-The product direction is to let you talk primarily to **S** and let **S** direct the team for you. The current implementation is the first step toward that model, not the final form yet.
+S is the recommended front door now. The old buttons and direct specialist chats are still there, but the product is increasingly shaped around “talk to the supervisor, let the supervisor use the team.”
 
-**Phase 0: Concept** — You talk to Agent A. Describe what you want. A asks clarifying questions until the scope is clear. This is the only required human interaction in fast mode; strict mode can still ask for Bash approvals later.
+**Phase 0: Concept** — You talk to S or A. The recommended flow is to tell S what you want, let S capture the concept, and then tell S when to start the team. Strict mode can still ask for Bash approvals later.
 
 **Phase 1: Planning** — A reads the build plan template and checklist, researches the concept (web searches, docs, source code), writes `plan.md` with complete, copy-pasteable code for every file, then does one self-review pass before handing it to B. No placeholders.
 
@@ -195,7 +196,7 @@ Once the build is complete, you can chat directly with any agent for post-build 
 
 ### The Supervisor (S Panel)
 
-The S panel on the left is the beginning of the "Claude with a dev team" model. In pipeline mode, S now gets a live team snapshot every time you chat with it: current phase, pipeline status, active turn, recent events, pending approvals, and recommended next actions. S can also trigger the core supervisor controls directly from chat: start a run, start plan-only mode, stop after review, continue an approved plan, resume a stalled planning/review turn, or stop the run. If something breaks, stalls, loops, or looks suspicious, ask S what is happening or tell S what you want the team to do next.
+The S panel on the left is the beginning of the "Claude with a dev team" model. Before a run starts, S now captures the concept locally and waits for an explicit start command instead of freelancing. Once a run exists, S gets a live team snapshot every time you chat with it: current phase, pipeline status, active turn, recent events, pending approvals, and recommended next actions. S can also trigger the core supervisor controls directly from chat: start a run, start plan-only mode, stop after review, continue an approved plan, resume a stalled planning/review turn, or stop the run. If something breaks, stalls, loops, or looks suspicious, ask S what is happening or tell S what you want the team to do next.
 
 ### Controls Reference
 
