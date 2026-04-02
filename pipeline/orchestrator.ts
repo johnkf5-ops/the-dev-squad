@@ -149,7 +149,7 @@ if (!existsSync(join(projectDir, '.git'))) {
 
 interface PipelineEvent {
   time: string;
-  agent: 'A' | 'B' | 'C' | 'D' | 'system';
+  agent: 'A' | 'B' | 'C' | 'D' | 'S' | 'system';
   phase: string;
   type: string;
   text: string;
@@ -198,7 +198,7 @@ if (resumingExistingProject && existsSync(eventsFile)) {
     pipelineStatus: existing.pipelineStatus || (existing.buildComplete ? 'complete' : 'idle'),
     resumeAction: existing.resumeAction === 'continue-approved-plan' || existing.resumeAction === 'resume-stalled-turn' ? existing.resumeAction : 'none',
     activeAgent: existing.activeAgent || '',
-    agentStatus: existing.agentStatus || { A: 'idle', B: 'idle', C: 'idle', D: 'idle' },
+    agentStatus: existing.agentStatus || { A: 'idle', B: 'idle', C: 'idle', D: 'idle', S: 'idle' },
     sessions: existing.sessions || {},
     buildComplete: !!existing.buildComplete,
     usage: existing.usage || { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalCostUsd: 0 },
@@ -216,7 +216,7 @@ if (resumingExistingProject && existsSync(eventsFile)) {
     pipelineStatus: 'idle',
     resumeAction: 'none',
     activeAgent: '',
-    agentStatus: { A: 'idle', B: 'idle', C: 'idle', D: 'idle' },
+    agentStatus: { A: 'idle', B: 'idle', C: 'idle', D: 'idle', S: 'idle' },
     sessions: {},
     buildComplete: false,
     usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalCostUsd: 0 },
@@ -249,6 +249,10 @@ function emit(
   };
   const c = colors[type] || '\x1b[0m';
   console.log(`${c}[${time}]   ${agent} | ${text}\x1b[0m`);
+}
+
+function emitSupervisor(phase: string, text: string) {
+  emit('S', phase, 'text', text);
 }
 
 function setAgent(agent: string, status: string) {
@@ -643,6 +647,10 @@ async function claude(
         currentResume = turn.sessionId;
         currentPrompt = buildResumePrompt(agent, state.currentPhase);
         emit('system', state.currentPhase, 'status', `Resuming Agent ${agent} from the saved session`);
+        emitSupervisor(
+          state.currentPhase,
+          `The ${agent === 'A' ? 'planner' : agent === 'B' ? 'reviewer' : 'agent'} looked stalled, so I resumed the saved session instead of throwing away the run.`
+        );
         continue;
       }
 
@@ -681,6 +689,10 @@ async function claude(
 
     writePendingApproval(projectDir, pending);
     emit('system', state.currentPhase, 'status', `Approval requested for Agent ${agent} Bash`);
+    emitSupervisor(
+      state.currentPhase,
+      `I paused the run because strict mode needs your approval before the ${agent === 'C' ? 'coder' : 'tester'} can run Bash.`
+    );
 
     const approved = await waitForPendingApproval(projectDir, pending.requestId);
     clearPendingApproval(projectDir, pending.requestId);
@@ -696,6 +708,12 @@ async function claude(
       state.currentPhase,
       approved ? 'approval' : 'status',
       approved ? `Approved Agent ${agent} Bash` : `Denied Agent ${agent} Bash`
+    );
+    emitSupervisor(
+      state.currentPhase,
+      approved
+        ? `You approved the ${agent === 'C' ? 'coder' : 'tester'} Bash request, so I am letting the run continue.`
+        : `You denied the ${agent === 'C' ? 'coder' : 'tester'} Bash request. I told the team to continue without that command if possible.`
     );
 
     currentResume = turn.sessionId;
@@ -836,8 +854,10 @@ async function runPlanningPhase(aSession: string, options?: { resumeStalled?: bo
 
   if (options?.resumeStalled) {
     emit('system', 'planning', 'status', 'Supervisor resumed A from the saved planning session');
+    emitSupervisor('planning', 'I resumed the planner from the saved session so we do not have to throw away the research and start over.');
   } else {
     emit('A', 'planning', 'status', 'Starting research and plan writing...');
+    emitSupervisor('planning', 'The planner is researching and writing the build plan now. I will keep the team in planning until the plan is solid enough for review.');
   }
 
   const prompt = options?.resumeStalled ? buildResumePrompt('A', 'planning') : buildPlanPrompt();
@@ -879,12 +899,14 @@ async function runPlanReviewPhase(
 
   if (options?.emitInitialSend !== false) {
     emit('A', 'plan-review', 'send', 'Sent plan to B for review');
+    emitSupervisor('plan-review', 'The planner handed the plan to the reviewer. We are still before coding, so this is the right place to catch gaps.');
   }
 
   if (options?.resumeStalledAgent === 'A') {
     setAgent('B', 'idle');
     setAgent('A', 'active');
     emit('system', 'plan-review', 'status', 'Supervisor resumed A during plan review');
+    emitSupervisor('plan-review', 'I resumed the planner during review so the plan can keep moving without resetting the whole run.');
 
     const aResume = await claude('A', buildResumePrompt('A', 'plan-review'), {
       role: ROLE_A,
@@ -942,6 +964,7 @@ async function runPlanReviewPhase(
     if (isPositiveSignal(signal)) {
       planApproved = true;
       emit('B', 'plan-review', 'approval', 'PLAN APPROVED');
+      emitSupervisor('plan-review', 'The reviewer approved the plan. The build doctrine is locked now, so coding can start from a stable contract.');
       setAgent('B', 'done');
       break;
     }
@@ -989,6 +1012,12 @@ async function runPlanReviewPhase(
   if (shouldStopAfterPlanReview()) {
     state.activeAgent = '';
     setPipelineStatus('paused');
+    emitSupervisor(
+      'plan-review',
+      state.runGoal === 'plan-only'
+        ? 'Planning is complete and I paused the team before coding, exactly as requested.'
+        : 'I paused the team after approved plan review, so you can decide whether to continue into coding.'
+    );
     emit(
       'system',
       'plan-review',
@@ -1011,6 +1040,7 @@ async function runBuildFromCoding(aSession: string): Promise<{ aSession: string;
   emit('A', 'coding', 'send', 'Sent approved plan to C');
   emit('C', 'coding', 'receive', 'Received approved plan from A');
   emit('C', 'coding', 'status', 'Building...');
+  emitSupervisor('coding', 'The coder is implementing the approved plan now. At this point the goal is execution, not re-deciding the design.');
 
   const cResult = await claude('C', [
     `Read the approved plan at ${join(projectDir, 'plan.md')}`,
@@ -1031,6 +1061,7 @@ async function runBuildFromCoding(aSession: string): Promise<{ aSession: string;
   setAgent('D', 'active');
   emit('C', 'code-review', 'send', 'Sent code to D for review');
   emit('D', 'code-review', 'receive', 'Received code from C');
+  emitSupervisor('code-review', 'The tester is reviewing the coder output against the approved plan before we trust the build.');
 
   let dSession: string | undefined;
   let codeApproved = false;
@@ -1097,6 +1128,7 @@ async function runBuildFromCoding(aSession: string): Promise<{ aSession: string;
 
   setPhase('testing');
   emit('D', 'testing', 'status', 'Moving to testing...');
+  emitSupervisor('testing', 'Code review is done. The tester is now running the build and checking whether it actually behaves the way the plan says it should.');
 
   let testsPassed = false;
   let testRound = 0;
@@ -1180,6 +1212,7 @@ async function runBuildFromCoding(aSession: string): Promise<{ aSession: string;
   setPipelineStatus('complete');
   state.buildComplete = true;
   emit('A', 'deploy', 'approval', 'BUILD COMPLETE');
+  emitSupervisor('complete', 'The team finished the build. You can inspect the output now or jump into any specialist chat for follow-up work.');
 
   try {
     execFileSync('git', ['add', '.'], { cwd: projectDir });
@@ -1219,11 +1252,14 @@ async function run() {
   if (existingASession && !resumingExistingProject) {
     emit('system', 'concept', 'status', `Build concept: ${concept}`);
     emit('system', 'concept', 'status', 'Phase 0 completed in viewer. Starting pipeline...');
+    emitSupervisor('concept', 'I have the concept and I am starting the team from the staged conversation now.');
   } else if (!resumingExistingProject) {
     setPhase('concept');
     emit('system', 'concept', 'status', `Build concept: ${concept}`);
+    emitSupervisor('concept', 'I have the concept. Once you start the run, I will hand it to the planner first.');
   } else {
     emit('system', state.currentPhase || 'concept', 'status', 'Resuming existing pipeline state');
+    emitSupervisor(state.currentPhase || 'concept', 'I am resuming the existing team state from the last saved checkpoint.');
   }
 
   const initialPipelineStatus = state.pipelineStatus;
@@ -1236,8 +1272,10 @@ async function run() {
 
   if (initialResumeAction === 'continue-approved-plan' && state.currentPhase === 'plan-review') {
     emit('system', 'plan-review', 'status', 'Continuing from the approved plan');
+    emitSupervisor('plan-review', 'I am continuing from the approved plan and handing the work into coding now.');
   } else if (initialPipelineStatus === 'paused' && state.currentPhase === 'plan-review') {
     emit('system', 'plan-review', 'status', 'Continuing from the approved plan');
+    emitSupervisor('plan-review', 'The plan was already approved and paused. I am continuing the build from that checkpoint now.');
   } else if (initialResumeAction === 'resume-stalled-turn' && stalledTurn?.agent === 'A' && stalledTurn.phase === 'planning') {
     aSession = await runPlanningPhase(aSession, { resumeStalled: true });
     const review = await runPlanReviewPhase(aSession);
@@ -1307,6 +1345,7 @@ async function run() {
 run().catch((err) => {
   try {
     setPipelineStatus('failed');
+    emitSupervisor(state.currentPhase || 'concept', `The run failed in ${state.currentPhase || 'concept'}. Ask me what happened and I can help decide whether to resume, stop, or reset.`);
   } catch {}
   console.error('\n[FATAL]', err.message);
   process.exit(1);

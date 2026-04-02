@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type TextareaHTMLAttributes } from 'react';
 import { Badge } from '@/components/shared/Badge';
 import { LunarOfficeScene } from '@/components/mission/LunarOfficeScene';
 import { canAutoResumeTurn } from '@/lib/pipeline-runtime';
@@ -41,6 +41,36 @@ const MANUAL_ROLES: Record<string, string> = {
   D: 'Testing & debugging',
   S: 'Oversight & diagnostics',
 };
+
+function AutoGrowTextarea({
+  value,
+  className = '',
+  maxRows = 6,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { maxRows?: number }) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    el.style.height = 'auto';
+    const lineHeight = Number.parseFloat(window.getComputedStyle(el).lineHeight || '20');
+    const maxHeight = lineHeight * maxRows + 4;
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [value, maxRows]);
+
+  return (
+    <textarea
+      {...props}
+      ref={textareaRef}
+      value={value}
+      rows={1}
+      className={`${className} resize-none`}
+    />
+  );
+}
 
 export default function PipelinePage() {
   const [mode, setMode] = useState<AppMode>('pipeline');
@@ -716,19 +746,23 @@ export default function PipelinePage() {
             <div className="mb-1.5 text-[10px] text-[#444]">
               Recommended: <span className="font-semibold text-emerald-400">Supervisor first</span>
             </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
+            <div className="flex items-end gap-2">
+              <AutoGrowTextarea
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSend();
+                  }
+                }}
                 placeholder={isPipeline
                   ? (supervisorRecommendation?.chatCommand
                       ? `Ask the supervisor anything, or try "${supervisorRecommendation.chatCommand}"`
                       : 'Ask the supervisor anything, or chat with any specialist directly...')
                   : 'Chat with the Supervisor'}
                 disabled={sendingAgents.has('S')}
-                className="flex-1 rounded-lg border border-[#252530] bg-[#14141e] px-3 py-2 text-sm text-white placeholder-[#444] focus:border-emerald-600 focus:outline-none disabled:opacity-30"
+                className="max-h-40 flex-1 rounded-lg border border-[#252530] bg-[#14141e] px-3 py-2 text-sm text-white placeholder-[#444] focus:border-emerald-600 focus:outline-none disabled:opacity-30"
               />
               <button onClick={handleSend} disabled={sendingAgents.has('S') || !chatInput.trim()} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-30">
                 Send
@@ -826,15 +860,19 @@ export default function PipelinePage() {
               </div>
               {/* Chat input */}
               <div className="flex-shrink-0 border-t border-[#1a1a2a] px-2.5 py-2" onClick={(e) => e.stopPropagation()}>
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
+                <div className="flex items-end gap-1.5">
+                  <AutoGrowTextarea
                     value={panelInputs[id] || ''}
                     onChange={(e) => setPanelInputs(prev => ({ ...prev, [id]: e.target.value }))}
-                    onKeyDown={(e) => e.key === 'Enter' && handlePanelSend(id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        void handlePanelSend(id);
+                      }
+                    }}
                     placeholder={`Message ${AGENT_NAMES[id]}...`}
                     disabled={isSending}
-                    className="flex-1 rounded-md border border-[#252530] bg-[#14141e] px-2.5 py-1.5 text-xs text-white placeholder-[#444] focus:border-blue-600 focus:outline-none disabled:opacity-30"
+                    className="max-h-32 flex-1 rounded-md border border-[#252530] bg-[#14141e] px-2.5 py-1.5 text-xs text-white placeholder-[#444] focus:border-blue-600 focus:outline-none disabled:opacity-30"
                   />
                   <button onClick={() => handlePanelSend(id)} disabled={isSending || !panelInputs[id]?.trim()} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-30">
                     Send
@@ -882,15 +920,19 @@ export default function PipelinePage() {
             </div>
             {/* Modal chat — sends to expanded agent, not S */}
             <div className="flex-shrink-0 border-t border-white/10 px-6 py-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
+              <div className="flex items-end gap-2">
+                <AutoGrowTextarea
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleExpandedSend()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleExpandedSend();
+                    }
+                  }}
                   placeholder={`Message ${AGENT_NAMES[expandedAgent]}...`}
                   disabled={sendingAgents.has(expandedAgent)}
-                  className="flex-1 rounded-lg border border-[#252530] bg-[#14141e] px-3 py-2 text-sm text-white placeholder-[#444] focus:border-blue-600 focus:outline-none disabled:opacity-30"
+                  className="max-h-40 flex-1 rounded-lg border border-[#252530] bg-[#14141e] px-3 py-2 text-sm text-white placeholder-[#444] focus:border-blue-600 focus:outline-none disabled:opacity-30"
                 />
                 <button onClick={handleExpandedSend} disabled={sendingAgents.has(expandedAgent) || !chatInput.trim()} className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-30">
                   Send
