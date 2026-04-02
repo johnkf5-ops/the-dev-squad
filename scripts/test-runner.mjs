@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 
 import {
+  AutoRunner,
+  DockerRunner,
   HostRunner,
   buildClaudeArgs,
   buildRunnerEnv,
   createRunner,
+  getNetworkProfile,
+  getProjectMountMode,
+  shouldPreferDocker,
 } from '../pipeline/runner.ts';
 
 const roleArgs = buildClaudeArgs({
@@ -54,8 +59,17 @@ assert.equal(env.PIPELINE_SECURITY_MODE, 'strict');
 assert.equal(env.CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR, '1');
 assert.equal(env.TEST_ONLY, '1');
 
+assert.equal(shouldPreferDocker({ pipelineAgent: 'C' }), true);
+assert.equal(shouldPreferDocker({ pipelineAgent: 'D' }), true);
+assert.equal(shouldPreferDocker({ pipelineAgent: 'A' }), false);
+assert.equal(getProjectMountMode('B'), 'ro');
+assert.equal(getProjectMountMode('D'), 'rw');
+assert.equal(getNetworkProfile('A'), 'research');
+assert.equal(getNetworkProfile('C'), 'build');
+assert.equal(getNetworkProfile('S'), 'none');
+
 assert.ok(createRunner('host') instanceof HostRunner);
-assert.ok(createRunner('auto') instanceof HostRunner);
-assert.throws(() => createRunner('docker'), /not implemented yet/i);
+assert.ok(createRunner('auto') instanceof AutoRunner);
+assert.equal(typeof new DockerRunner().isAvailable(), 'boolean');
 
 console.log('runner checks passed');

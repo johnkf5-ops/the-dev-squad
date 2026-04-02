@@ -376,6 +376,7 @@ async function runClaudeTurn(
     const child = runner.spawn({
       prompt: safePrompt,
       projectDir,
+      pipelineDir: BUILDUI_DIR,
       model: MODEL,
       roleFile: opts.role,
       resume: opts.resume,
@@ -383,6 +384,12 @@ async function runClaudeTurn(
       effort,
       pipelineAgent: agent,
       securityMode: state.securityMode,
+      templateFiles: agent === 'A'
+        ? [
+            join(BUILDUI_DIR, 'build-plan-template.md'),
+            join(BUILDUI_DIR, 'checklist-template.md'),
+          ]
+        : undefined,
     });
 
     startActiveTurn(agent, safePrompt, opts.autoResumeCount || 0, opts.resume);

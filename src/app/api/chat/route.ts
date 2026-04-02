@@ -499,6 +499,7 @@ function handlePipeline(
     {
       prompt: finalMessage,
       projectDir,
+      pipelineDir: BUILDUI_DIR,
       model: 'claude-opus-4-6',
       roleFile,
       resume: sessionId || undefined,

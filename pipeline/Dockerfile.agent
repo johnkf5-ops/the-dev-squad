@@ -1,0 +1,49 @@
+FROM node:20
+
+ARG CLAUDE_CODE_VERSION=latest
+ARG USERNAME=node
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    jq \
+    procps \
+    sudo \
+    iptables \
+    ipset \
+    iproute2 \
+    dnsutils \
+    aggregate \
+    python3 \
+    python3-pip \
+    curl \
+    ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/share/npm-global && \
+    chown -R ${USERNAME}:${USERNAME} /usr/local/share/npm-global
+
+RUN mkdir -p /home/node/Builds /home/node/.claude /opt/pipeline && \
+    chown -R ${USERNAME}:${USERNAME} /home/node/Builds /home/node/.claude /opt/pipeline
+
+WORKDIR /home/node/Builds
+
+USER ${USERNAME}
+
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH=$PATH:/usr/local/share/npm-global/bin
+ENV DEVCONTAINER=true
+ENV SHELL=/bin/bash
+
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+COPY agent-firewall.sh /usr/local/bin/
+COPY agent-entrypoint.sh /usr/local/bin/
+
+USER root
+RUN chmod +x /usr/local/bin/agent-firewall.sh /usr/local/bin/agent-entrypoint.sh && \
+    echo "node ALL=(root) NOPASSWD: /usr/local/bin/agent-firewall.sh" > /etc/sudoers.d/node-firewall && \
+    chmod 0440 /etc/sudoers.d/node-firewall
+
+USER ${USERNAME}
+
+ENTRYPOINT ["/usr/local/bin/agent-entrypoint.sh"]
