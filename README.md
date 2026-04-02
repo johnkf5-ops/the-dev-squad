@@ -207,6 +207,7 @@ Additional protections:
 - `Write`/`Edit`/`NotebookEdit` are jailed to the current project for A/C and blocked for B/D
 - Pipeline sessions set `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1`, so Bash `cd` does not persist into later file-edit tool calls
 - Plan is locked after B approves — no agent can modify it
+- A and B can use `WebSearch` and `WebFetch` for direct-source research and review
 - Fast mode auto-approves safer Bash and asks for riskier Bash
 - Strict mode requires approval for every Bash call from agents C and D
 - All sessions use `--permission-mode auto` for Claude's built-in safety classifier

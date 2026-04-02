@@ -54,8 +54,8 @@ Agents A-D are now jailed to their current project directory for `Write`/`Edit`/
 **TOCTOU race conditions**
 The hook resolves file paths at check time. Between the check and the actual tool execution, symlinks could be retargeted. This is a fundamental limitation of check-then-act in a separate process.
 
-**WebSearch exfiltration (ACCEPTED RISK)**
-Agent A has WebSearch access for research. Search queries go to the internet and could leak small amounts of information. This is an accepted tradeoff — A needs web access to research build concepts. All other agents are blocked from WebSearch and WebFetch.
+**Research-stage web egress (ACCEPTED RISK)**
+Agents A and B have `WebSearch` and `WebFetch` access for direct-source research and review. This improves plan quality and verification quality, but it also means those agents can send queries and fetch external pages. That is an accepted tradeoff for the planning/review stages. Agents C, D, and S remain blocked from `WebSearch` and `WebFetch`.
 
 ## What Requires What
 
@@ -65,7 +65,7 @@ Docker is one way to get stronger isolation, but it is not the only way. Contain
 |-------|------------------|-----------------------------------|------------------------------------------|
 | Cross-project writes via `Write`/`Edit`/`NotebookEdit` | Yes — **FIXED** | No | No |
 | Cross-project writes via Bash | No | Yes — gate all Bash for C/D, remove Bash, or replace it with allowlisted operations | Yes, if unrestricted Bash must remain available |
-| Agent A WebSearch exfiltration | No | Yes — reduce, proxy, or remove web access | No |
+| Agent A/B research-stage web egress | No | Yes — reduce, proxy, gate, or remove web access | No |
 | Indirect execution via `python3 -c`, `eval`, base64, etc. | No | Yes — remove Bash, require approval for all Bash, or replace shell access with allowlisted operations | Yes, if Bash must remain available |
 | Hardlink bypass | Partial mitigation only | Yes — move protected files out of agent-writable trees and reduce shell/file authority | Yes, if you need a reliable guarantee |
 | TOCTOU race between check and tool execution | No | Partial mitigation only | Yes |
@@ -73,7 +73,7 @@ Docker is one way to get stronger isolation, but it is not the only way. Contain
 In short:
 
 - **Fix in hook:** cross-project writes through `Write`/`Edit`/`NotebookEdit`
-- **Fix by changing permissions/product design:** Bash-mediated writes, indirect execution, and WebSearch risk
+- **Fix by changing permissions/product design:** Bash-mediated writes, indirect execution, and research-stage web egress risk
 - **Needs OS-level isolation for a strong guarantee:** hardlinks and TOCTOU, and Bash-mediated escapes if Bash remains available
 
 ## Current Permission Matrix
@@ -83,8 +83,8 @@ The `Write` column below refers to file-edit tools (`Write`, `Edit`, `NotebookEd
 | Agent | Read | Write | Bash | WebSearch | WebFetch | Agent Tool |
 |-------|------|-------|------|-----------|----------|------------|
 | S | Anywhere | `~/Builds/` only (no `.claude/`) | Yes (pattern-restricted) | No | No | No |
-| A | Anywhere | `plan.md` only in the current project under `~/Builds/` (no Phase 0) | No | Yes | No | No |
-| B | Anywhere | No | No | No | No | No |
+| A | Anywhere | `plan.md` only in the current project under `~/Builds/` (no Phase 0) | No | Yes | Yes | No |
+| B | Anywhere | No | No | Yes | Yes | No |
 | C | Anywhere | Current project under `~/Builds/` (no `plan.md`, no `.claude/`) | Yes (pattern-restricted) | No | No | No |
 | D | Anywhere | No | Yes (pattern-restricted) | No | No | No |
 

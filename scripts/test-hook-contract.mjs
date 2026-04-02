@@ -98,6 +98,11 @@ const checks = [
     run: () => invokeHook({ agent: 'A', toolName: 'WebSearch', toolInput: { query: 'mdn canvas api' } }),
   },
   {
+    name: 'A can use WebFetch',
+    expect: 'allow',
+    run: () => invokeHook({ agent: 'A', toolName: 'WebFetch', toolInput: { url: 'https://developer.mozilla.org/' } }),
+  },
+  {
     name: 'A can write relative plan.md during planning',
     expect: 'allow',
     run: () => invokeHook({ agent: 'A', toolName: 'Write', toolInput: { file_path: 'plan.md', content: '# plan\n' } }),
@@ -111,6 +116,16 @@ const checks = [
     name: 'B can use StructuredOutput',
     expect: 'allow',
     run: () => invokeHook({ agent: 'B', toolName: 'StructuredOutput', toolInput: {} }),
+  },
+  {
+    name: 'B can use WebSearch',
+    expect: 'allow',
+    run: () => invokeHook({ agent: 'B', toolName: 'WebSearch', toolInput: { query: 'anthropic structured outputs' } }),
+  },
+  {
+    name: 'B can use WebFetch',
+    expect: 'allow',
+    run: () => invokeHook({ agent: 'B', toolName: 'WebFetch', toolInput: { url: 'https://platform.claude.com/docs/' } }),
   },
   {
     name: 'B cannot write files',
@@ -191,6 +206,11 @@ const checks = [
     name: 'C cannot use WebSearch',
     expect: 'deny',
     run: () => invokeHook({ agent: 'C', toolName: 'WebSearch', toolInput: { query: 'mdn canvas api' } }),
+  },
+  {
+    name: 'D cannot use WebFetch',
+    expect: 'deny',
+    run: () => invokeHook({ agent: 'D', toolName: 'WebFetch', toolInput: { url: 'https://developer.mozilla.org/' } }),
   },
   {
     name: 'Unknown tools are deny-by-default',

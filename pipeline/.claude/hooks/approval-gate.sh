@@ -65,11 +65,11 @@ if [ "$TOOL_NAME" = "Agent" ]; then
   exit 2
 fi
 
-# ── Block WebFetch and WebSearch (exfiltration risk) ─────────────────
+# ── Gate WebFetch and WebSearch (egress risk) ────────────────────────
 
 if [ "$TOOL_NAME" = "WebFetch" ] || [ "$TOOL_NAME" = "WebSearch" ]; then
-  # Only allow WebSearch for agents that need research (A for planning)
-  if [ "$TOOL_NAME" = "WebSearch" ] && [ "$AGENT" = "A" ]; then
+  # Only allow research-stage web access for agents that need source verification.
+  if [[ "$AGENT" =~ ^[AB]$ ]]; then
     echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
     exit 0
   fi
