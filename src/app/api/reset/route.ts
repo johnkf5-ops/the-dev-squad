@@ -2,6 +2,10 @@ import { rmSync, existsSync, readdirSync, readFileSync, writeFileSync, statSync 
 import { join } from 'path';
 import { homedir } from 'os';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  clearApprovedBashGrant,
+  clearPendingApproval,
+} from '@/lib/pipeline-approval';
 
 const BUILDS_DIR = join(homedir(), 'Builds');
 const STAGING_DIR = join(BUILDS_DIR, '.staging');
@@ -51,16 +55,32 @@ export async function POST(req: NextRequest) {
 
           if (shouldReset) {
             state.currentPhase = 'concept';
+            state.projectDir = '';
+            state.concept = '';
             state.activeAgent = '';
             state.buildComplete = false;
             state.pipelineStatus = 'idle';
             state.stopAfterPhase = 'none';
             state.resumeAction = 'none';
             state.agentStatus = { A: 'idle', B: 'idle', C: 'idle', D: 'idle', S: 'idle' };
+            state.sessions = {};
+            state.events = [];
+            state.usage = {
+              inputTokens: 0,
+              outputTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalCostUsd: 0,
+            };
             if (state.runtime && typeof state.runtime === 'object') {
               state.runtime.activeTurn = null;
             }
+            clearPendingApproval(dir);
+            clearApprovedBashGrant(dir);
             writeFileSync(eventsFile, JSON.stringify(state, null, 2));
+          } else {
+            clearPendingApproval(dir);
+            clearApprovedBashGrant(dir);
           }
         } catch {}
       }

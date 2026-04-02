@@ -189,9 +189,12 @@ export default function PipelinePage() {
     await resetState();
     setPipelineStarted(false);
     completionNotifiedRef.current = false;
+    setPendingApproval(null);
     setSelectedAgent('S');
     setExpandedAgent(null);
     setChatInput('');
+    setShowPlan(false);
+    setPlanContent(null);
     setPanelInputs({ A: '', B: '', C: '', D: '' });
   }
 

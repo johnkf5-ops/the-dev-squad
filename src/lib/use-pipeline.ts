@@ -191,7 +191,12 @@ export function usePipelineState({ pollInterval = 400, mode, model }: UsePipelin
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode }),
     });
-    return res.json();
+    const data = await res.json();
+    if (data?.ok) {
+      setState(EMPTY_STATE);
+      setError(null);
+    }
+    return data;
   }, [mode]);
 
   // Get events for a specific agent
