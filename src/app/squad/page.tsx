@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/shared/Badge';
 import { AutoGrowTextarea } from '@/components/shared/AutoGrowTextarea';
+import { MarkdownText } from '@/components/shared/MarkdownText';
 import { getExecutionPathStatus, getSupervisorRecommendation, getSupervisorUpdate } from '@/lib/pipeline-supervisor';
 import { usePipelineState, type AgentId, type AppMode, type PendingApproval, type RunGoal, type SecurityMode } from '@/lib/use-pipeline';
 
@@ -397,7 +398,7 @@ export default function SquadPage() {
                             {isUser && <span>{eventLabel(event.type)}</span>}
                           </div>
                           <div className={`w-full rounded-lg border px-3 py-2.5 text-[15px] leading-7 ${bodyClass}`}>
-                            {event.text}
+                            <MarkdownText className="[&_p]:leading-7">{event.text}</MarkdownText>
                           </div>
                         </div>
                       </div>
@@ -512,7 +513,7 @@ export default function SquadPage() {
                             <span>{event.agent === 'system' ? 'System' : AGENT_NAMES[event.agent as AgentId] || event.agent}</span>
                             <span>{new Date(event.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                           </div>
-                          <div>{event.text}</div>
+                          <MarkdownText className="text-xs leading-relaxed">{event.text}</MarkdownText>
                         </div>
                       ))
                     )}

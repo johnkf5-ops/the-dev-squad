@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
-import Markdown from 'react-markdown';
 import { Badge } from '@/components/shared/Badge';
 import { AutoGrowTextarea } from '@/components/shared/AutoGrowTextarea';
+import { MarkdownText } from '@/components/shared/MarkdownText';
 import { LunarOfficeScene } from '@/components/mission/LunarOfficeScene';
 import { canAutoResumeTurn } from '@/lib/pipeline-runtime';
 import { getExecutionPathStatus, getSupervisorRecommendation, getSupervisorUpdate } from '@/lib/pipeline-supervisor';
@@ -353,14 +353,14 @@ export default function PipelinePage() {
                     e.agent === 'S' ? 'text-emerald-400' :
                     'text-slate-600'
                   }`}>{e.agent === 'system' ? '--' : e.agent}</span>
-                  <span className={
+                  <div className={`min-w-0 ${
                     e.type === 'approval' ? 'font-bold text-emerald-400' :
                     e.type === 'question' ? 'text-violet-300' :
                     e.type === 'issue' || e.type === 'failure' ? 'text-red-300' :
                     e.type === 'tool_call' ? 'text-[#555]' :
                     e.type === 'user_msg' ? 'text-blue-300' :
                     e.type === 'text' ? 'text-slate-400' : 'text-[#555]'
-                  }>{e.text}</span>
+                  }`}><MarkdownText>{e.text}</MarkdownText></div>
                 </div>
               ))}
             </div>
@@ -813,7 +813,7 @@ export default function PipelinePage() {
                 <span className="mr-1.5 text-[9px] text-[#333]">
                   {new Date(e.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
-                <span className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-headings:mt-3 prose-headings:mb-1 prose-li:my-0.5 prose-hr:my-2 prose-pre:my-1"><Markdown>{e.text}</Markdown></span>
+                <MarkdownText>{e.text}</MarkdownText>
               </div>
             ))}
           </div>
@@ -928,7 +928,7 @@ export default function PipelinePage() {
                       <span className="mr-1.5 text-[9px] text-[#333]">
                         {new Date(e.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </span>
-                      <span className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-headings:mt-3 prose-headings:mb-1 prose-li:my-0.5 prose-hr:my-2 prose-pre:my-1"><Markdown>{e.text}</Markdown></span>
+                      <MarkdownText>{e.text}</MarkdownText>
                     </div>
                   ))}
                 </div>
@@ -989,7 +989,7 @@ export default function PipelinePage() {
                   <span className="mr-2 text-[10px] text-[#444]">
                     {new Date(e.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
-                  <span className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-headings:mt-3 prose-headings:mb-1 prose-li:my-0.5 prose-hr:my-2 prose-pre:my-1"><Markdown>{e.text}</Markdown></span>
+                  <MarkdownText>{e.text}</MarkdownText>
                 </div>
               ))}
             </div>

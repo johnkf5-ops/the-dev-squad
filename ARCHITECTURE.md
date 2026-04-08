@@ -31,6 +31,8 @@ When the user chats with the supervisor in pipeline mode, the chat route now inj
 3. Chat happens in a staging area (`~/Builds/.staging/`). No project directory created yet.
 4. When the user asks the **Supervisor** to start, or uses the fallback **START** button, staging moves to a real project dir and the pipeline runs according to the dashboard toggles (security mode, permission mode, run goal). The concept-phase conversation is preserved in the pipeline events.
 
+This same pattern also works for existing repos: tell the Supervisor it is an existing codebase, describe the changes you want, and let the Planner build context from the real repo before the team starts planning or coding.
+
 ### Phase 1: Planning
 
 5. The **Planner** reads `build-plan-template.md` — the planning playbook.
